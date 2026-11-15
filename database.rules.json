@@ -1,0 +1,30 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "lobby": {
+      ".read": true,
+      "$uid": {
+        ".write": true,
+        ".validate": "newData.hasChildren(['n','c','t']) && newData.child('n').isString() && newData.child('n').val().length <= 16 && newData.child('c').isString() && newData.child('c').val().length <= 7 && newData.child('t').isNumber() && newData.child('t').val() <= now + 60000"
+      }
+    },
+    "inv": {
+      "$uid": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.hasChildren(['id','from','n','c','seed','t']) && newData.child('n').val().length <= 16"
+      }
+    },
+    "res": { "$id": { ".read": true, ".write": true } },
+    "m": {
+      "$id": {
+        "$uid": {
+          ".read": true,
+          ".write": true,
+          ".validate": "newData.hasChildren(['s']) && newData.child('s').isNumber() && newData.child('s').val() <= 9999"
+        }
+      }
+    }
+  }
+}

@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#8fd3f4">
 <meta name="description" content="Şar Partlat: refleks oyunu. Şarları yox olmamış partlat, kombo topla, bombalardan qaç. AZ / EN / RU.">
 <meta property="og:title" content="Şar Partlat">
-<meta property="og:description" content="Refleks oyunu: şarları partlat, kombo topla, günün çağırışını keç.">
+<meta property="og:description" content="Refleks oyunu: şarları partlat, kombo topla, onlayn duel et.">
 <title>Şar Partlat</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -84,6 +84,11 @@ button:focus-visible, summary:focus-visible, input:focus-visible { outline: 3px 
 .btn { border: 0; border-radius: 999px; padding: 12px 26px; background: var(--accent); color: var(--accent-ink); font-family: var(--font-display); font-weight: 800; font-size: 1.25rem; min-height: 48px; }
 .btn:active { transform: translateY(1px); }
 .ghost small { display: block; font-size: 0.72rem; font-weight: 700; color: var(--ink-soft); line-height: 1.2; }
+.players { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; width: 100%; max-height: 32vh; overflow: auto; }
+.players li { display: flex; align-items: center; gap: 10px; background: var(--chip); border-radius: 14px; padding: 6px 8px 6px 12px; text-align: left; }
+.players li .nm { flex: 1; min-width: 0; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.players li .ghost { min-height: 38px; padding: 4px 12px; }
+.players li.empty { justify-content: center; color: var(--ink-soft); font-size: 0.9rem; padding: 12px; }
 .skc { display: block; margin: 6px auto 0; }
 .ghost { border: 2px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font-weight: 700; padding: 8px 16px; min-height: 44px; }
 .wide { width: 100%; }
@@ -202,9 +207,9 @@ input[type="text"], input[type="date"] { width: 100%; padding: 10px 12px; border
 }
 html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 </style>
+
 </head>
 <body>
-
 <main class="app">
   <header class="top">
     <h1 data-t="title">Şar Partlat</h1>
@@ -387,6 +392,24 @@ html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area
       </div>
     </div>
 
+    <div class="overlay" id="ovLobby" hidden>
+      <div class="card">
+        <h2 data-t="lobbyTitle">Onlayn oyunçular</h2>
+        <p class="small" data-t="lobbyHint">Adın və rəngin yalnız bu ekranda olarkən başqalarına görünür. Rəqib seç və dəvət göndər.</p>
+        <div class="note" id="lbInvite" hidden>
+          <span id="lbInvText"></span>
+          <div class="row2" style="margin-top:8px">
+            <button class="btn" id="lbAccept" type="button" style="font-size:1rem;padding:8px 12px" data-t="accept">Qəbul et</button>
+            <button class="ghost" id="lbDecline" type="button" data-t="decline">Rədd et</button>
+          </div>
+        </div>
+        <p class="msg" id="lbMsg"></p>
+        <ul class="players" id="lbList"></ul>
+        <button class="ghost wide" id="lbCancel" type="button" data-t="cancelInv" hidden>Dəvəti ləğv et</button>
+        <button class="ghost wide" id="lbLocal" type="button" data-t="localBtn">Eyni cihazda oyna</button>
+        <button class="ghost wide" id="lbBack" type="button" data-t="back">Geri</button>
+      </div>
+    </div>
     <div class="overlay" id="ovSkins" hidden>
       <div class="card">
         <h2 data-t="skinsTitle">Şar kolleksiyası</h2>
@@ -422,6 +445,7 @@ html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area
       <li data-t="pr2">Profil və tərəqqi yalnız bu cihazda saxlanır, Profil bölməsindən silinir.</li>
       <li data-t="pr3">Hər 3 raunddan sonra fasilə təklif olunur. Bomba cəzası yalnız baldan çıxılır.</li>
       <li data-t="pr4">Orta reaksiya vaxtı şarın görünməsindən toxunuşa qədər keçən müddətdir.</li>
+      <li data-t="pr6">Onlayn duel: adın, rəngin və təsadüfi ID yalnız lobidə olarkən serverdə görünür, çıxanda silinir. 13 yaşdan kiçiklər üçün onlayn söndürülüb.</li>
       <li data-t="pr5">Bildiriş göndərilmir. Bir günü buraxsan, qoruma zənciri saxlayır; sikkələr yalnız oyunda qazanılır.</li>
     </ul>
   </details>
@@ -440,6 +464,7 @@ html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area
   /* ---------- i18n ---------- */
   var DICT = {"title": {"az": "Şar Partlat", "en": "Balloon Pop", "ru": "Лопни шар"}, "pause": {"az": "Dayandır", "en": "Pause", "ru": "Пауза"}, "paused": {"az": "Dayandırıldı", "en": "Paused", "ru": "Пауза"}, "profile": {"az": "Profil", "en": "Profile", "ru": "Профиль"}, "sndOn": {"az": "Səs: açıq", "en": "Sound: on", "ru": "Звук: вкл"}, "sndOff": {"az": "Səs: bağlı", "en": "Sound: off", "ru": "Звук: выкл"}, "hLvl": {"az": "Səviyyə", "en": "Level", "ru": "Уровень"}, "hScore": {"az": "Bal", "en": "Score", "ru": "Очки"}, "hCombo": {"az": "Kombo", "en": "Combo", "ru": "Комбо"}, "hTime": {"az": "Vaxt", "en": "Time", "ru": "Время"}, "hBal": {"az": "Şar", "en": "Balloons", "ru": "Шары"}, "canvasAria": {"az": "Oyun sahəsi. Görünən şarlara toxun, bombalara toxunma.", "en": "Game area. Tap the visible balloons, not the bombs.", "ru": "Игровое поле. Касайся шаров, но не бомб."}, "startTitle": {"az": "Şarlar birdən görünür!", "en": "Balloons pop up suddenly!", "ru": "Шары появляются внезапно!"}, "startText": {"az": "Yox olmamış toxunub partlat. Kombo topla, bombalardan qaç.", "en": "Tap them before they vanish. Build combos, avoid bombs.", "ru": "Успей коснуться, пока шар не исчез. Копи комбо, избегай бомб."}, "bonusNote": {"az": "Paylaşım bonusu hazırdır: növbəti raundda +10 saniyə.", "en": "Share bonus ready: +10 seconds next round.", "ru": "Бонус за публикацию готов: +10 секунд в следующем раунде."}, "start": {"az": "Başla", "en": "Play", "ru": "Играть"}, "duelBtn": {"az": "İki nəfər", "en": "Two players", "ru": "Вдвоём"}, "ach": {"az": "Nailiyyətlər", "en": "Achievements", "ru": "Достижения"}, "theme": {"az": "Mövzu", "en": "Theme", "ru": "Тема"}, "fHit": {"az": "Partlatdın", "en": "Popped", "ru": "Лопнуло"}, "fMiss": {"az": "Qaçırdın", "en": "Missed", "ru": "Пропущено"}, "fAvg": {"az": "Orta reaksiya", "en": "Avg. reaction", "ru": "Ср. реакция"}, "fBest": {"az": "Ən sürətli", "en": "Fastest", "ru": "Быстрейшая"}, "fCombo": {"az": "Maks. kombo", "en": "Max combo", "ru": "Макс. комбо"}, "breakText": {"az": "3 raund oynadın. Əllərini və gözlərini dincəlt: su iç, uzağa bax.", "en": "You played 3 rounds. Rest your hands and eyes: drink water, look far away.", "ru": "Ты сыграл 3 раунда. Дай отдохнуть рукам и глазам: выпей воды, посмотри вдаль."}, "endDone": {"az": "Səviyyə tamamlandı!", "en": "Level complete!", "ru": "Уровень пройден!"}, "endMax": {"az": "Ən yüksək səviyyədəsən!", "en": "You're at the top level!", "ru": "Ты на высшем уровне!"}, "endFail": {"az": "Az qaldı, yenə cəhd et!", "en": "So close, try again!", "ru": "Почти получилось, попробуй ещё!"}, "nextLevel": {"az": "Növbəti səviyyə", "en": "Next level", "ru": "Следующий уровень"}, "replay": {"az": "Yenidən oyna", "en": "Play again", "ru": "Играть снова"}, "retry": {"az": "Yenidən cəhd et", "en": "Try again", "ru": "Попробовать снова"}, "takeBreak": {"az": "Fasilə verirəm", "en": "I'll take a break", "ru": "Делаю перерыв"}, "another": {"az": "Bir raund da", "en": "One more round", "ru": "Ещё раунд"}, "shareBtn": {"az": "Paylaş: +10 san", "en": "Share: +10 s", "ru": "Поделись: +10 с"}, "menu": {"az": "Menyu", "en": "Menu", "ru": "Меню"}, "duelOver": {"az": "Duel bitdi", "en": "Duel over", "ru": "Дуэль окончена"}, "duelBreak": {"az": "3 raund oynadınız. Bir az dincəlin.", "en": "You played 3 rounds. Take a short rest.", "ru": "Вы сыграли 3 раунда. Немного отдохните."}, "rematch": {"az": "Revanş", "en": "Rematch", "ru": "Реванш"}, "tie": {"az": "Bərabərlik!", "en": "It's a tie!", "ru": "Ничья!"}, "wins": {"az": "{name} qalib gəldi!", "en": "{name} wins!", "ru": "Победитель: {name}!"}, "duelTitle": {"az": "İki nəfərlik duel", "en": "Two-player duel", "ru": "Дуэль вдвоём"}, "duelText": {"az": "30 saniyə. Hər kəs öz yarısında partlayır, şar ardıcıllığı hamı üçün eynidir. Ən çox bal qazanan qalib olur.", "en": "30 seconds. Each player pops balloons in their own half; the balloon sequence is identical for both. Highest score wins.", "ru": "30 секунд. Каждый играет на своей половине, порядок шаров одинаков для обоих. Побеждает тот, у кого больше очков."}, "p1Label": {"az": "1-ci oyunçu", "en": "Player 1", "ru": "Игрок 1"}, "p2Label": {"az": "2-ci oyunçu", "en": "Player 2", "ru": "Игрок 2"}, "duelGo": {"az": "Duelə başla", "en": "Start duel", "ru": "Начать дуэль"}, "back": {"az": "Geri", "en": "Back", "ru": "Назад"}, "ageText": {"az": "Başlamazdan əvvəl doğum tarixini daxil et. Tarix saxlanmır, yalnız yaşın 13-dən çox olub-olmadığı yadda qalır.", "en": "Enter your date of birth before starting. The date is not stored; only whether you are over 13 is remembered.", "ru": "Перед началом введи дату рождения. Дата не сохраняется, запоминается только, больше ли тебе 13 лет."}, "dob": {"az": "Doğum tarixi", "en": "Date of birth", "ru": "Дата рождения"}, "cont": {"az": "Davam et", "en": "Continue", "ru": "Продолжить"}, "childText": {"az": "13 yaşdan kiçik oyunçular qonaq kimi oynayır: ad, paylaşım və internet funksiyaları söndürülüb.", "en": "Players under 13 play as guests: name, sharing and online features are turned off.", "ru": "Игроки младше 13 лет играют как гости: имя, публикация и онлайн-функции отключены."}, "guestGo": {"az": "Qonaq kimi davam et", "en": "Continue as guest", "ru": "Продолжить как гость"}, "nameLabel": {"az": "Ad (2–16 simvol)", "en": "Name (2–16 characters)", "ru": "Имя (2–16 символов)"}, "pickColor": {"az": "Rəng seç", "en": "Pick a color", "ru": "Выбери цвет"}, "color": {"az": "Rəng", "en": "Color", "ru": "Цвет"}, "save": {"az": "Yadda saxla", "en": "Save", "ru": "Сохранить"}, "localOnly": {"az": "Məlumat yalnız bu cihazda saxlanır.", "en": "Data is stored on this device only.", "ru": "Данные хранятся только на этом устройстве."}, "delAsk": {"az": "Hesabı və məlumatları sil", "en": "Delete account and data", "ru": "Удалить аккаунт и данные"}, "delWarn": {"az": "Profil, nailiyyətlər və səviyyə tərəqqisi silinəcək.", "en": "Profile, achievements and level progress will be deleted.", "ru": "Профиль, достижения и прогресс уровней будут удалены."}, "delYes": {"az": "Bəli, sil", "en": "Yes, delete", "ru": "Да, удалить"}, "cancel": {"az": "Ləğv et", "en": "Cancel", "ru": "Отмена"}, "shareTitle": {"az": "Nəticəni paylaş", "en": "Share your result", "ru": "Поделись результатом"}, "cardAlt": {"az": "Nəticə kartı", "en": "Result card", "ru": "Карточка результата"}, "shareTextAria": {"az": "Paylaşım mətni", "en": "Share text", "ru": "Текст для публикации"}, "shareHint": {"az": "Gündə bir paylaşım üçün növbəti raundda +10 saniyə bonus verilir.", "en": "One share per day gives +10 seconds next round.", "ru": "Одна публикация в день даёт +10 секунд в следующем раунде."}, "shareDo": {"az": "Paylaş", "en": "Share", "ru": "Поделиться"}, "copyText": {"az": "Mətni kopyala", "en": "Copy text", "ru": "Скопировать текст"}, "toMenu": {"az": "Menyuya qayıt", "en": "Back to menu", "ru": "В меню"}, "restTitle": {"az": "Fasilə vaxtıdır", "en": "Break time", "ru": "Время перерыва"}, "restText": {"az": "Ayağa qalx, su iç, bir az uzağa bax. Hazır olanda qayıdarsan.", "en": "Stand up, drink some water, look far away. Come back when you are ready.", "ru": "Встань, выпей воды, посмотри вдаль. Возвращайся, когда будешь готов."}, "ready": {"az": "Hazıram", "en": "I'm ready", "ru": "Я готов"}, "privacy": {"az": "Məxfilik və istifadə", "en": "Privacy and usage", "ru": "Конфиденциальность и использование"}, "pr1": {"az": "Oyunda reklam və satınalma yoxdur. Məlumat cihazdan çıxmır.", "en": "There are no ads or purchases. Data never leaves the device.", "ru": "В игре нет рекламы и покупок. Данные не покидают устройство."}, "pr2": {"az": "Profil və tərəqqi yalnız bu cihazda saxlanır, Profil bölməsindən silinir.", "en": "Profile and progress are stored on this device only and can be deleted from Profile.", "ru": "Профиль и прогресс хранятся только на этом устройстве и удаляются в разделе «Профиль»."}, "pr3": {"az": "Hər 3 raunddan sonra fasilə təklif olunur. Bomba cəzası yalnız baldan çıxılır.", "en": "A break is suggested after every 3 rounds. The bomb penalty only reduces points.", "ru": "Перерыв предлагается после каждых 3 раундов. Штраф за бомбу снимает только очки."}, "pr4": {"az": "Orta reaksiya vaxtı şarın görünməsindən toxunuşa qədər keçən müddətdir.", "en": "Average reaction time is the time from a balloon appearing to your tap.", "ru": "Средняя реакция — время от появления шара до касания."}, "noSess": {"az": "Bu görüşdə hələ raund oynanmayıb.", "en": "No rounds played this session yet.", "ru": "В этой сессии раундов ещё не было."}, "sess": {"az": "Bu görüşdə: {r} raund, {p} şar, dəqiqlik {a}%, orta reaksiya {v}.", "en": "This session: {r} rounds, {p} balloons, accuracy {a}%, avg reaction {v}.", "ru": "За сессию: раундов {r}, шаров {p}, точность {a}%, ср. реакция {v}."}, "ms": {"az": "ms", "en": "ms", "ru": "мс"}, "bestLine": {"az": "Ən yüksək səviyyən: {l}. Oradan davam edirsən.", "en": "Your best level: {l}. You continue from there.", "ru": "Твой лучший уровень: {l}. Продолжишь с него."}, "player": {"az": "Oyunçu", "en": "Player", "ru": "Игрок"}, "p1": {"az": "Oyunçu 1", "en": "Player 1", "ru": "Игрок 1"}, "p2": {"az": "Oyunçu 2", "en": "Player 2", "ru": "Игрок 2"}, "guest": {"az": "Qonaq", "en": "Guest", "ru": "Гость"}, "bonusToast": {"az": "Paylaşım bonusu: +10 saniyə", "en": "Share bonus: +10 seconds", "ru": "Бонус за публикацию: +10 секунд"}, "newTheme": {"az": "Yeni mövzu açıldı: {n}", "en": "New theme unlocked: {n}", "ru": "Новая тема открыта: {n}"}, "achToast": {"az": "Nailiyyət: {n}", "en": "Achievement: {n}", "ru": "Достижение: {n}"}, "secretToast": {"az": "Gizli nailiyyət açıldı: {n}!", "en": "Secret achievement unlocked: {n}!", "ru": "Секретное достижение открыто: {n}!"}, "bomb": {"az": "Bomba!", "en": "Bomb!", "ru": "Бомба!"}, "comboX": {"az": "Kombo", "en": "Combo", "ru": "Комбо"}, "stats": {"az": "Ən yüksək səviyyə: {l} · Rekord bal: {b} · Partlatdığın şar: {p} · Nailiyyət: {g}/{m}", "en": "Best level: {l} · Best score: {b} · Balloons popped: {p} · Achievements: {g}/{m}", "ru": "Лучший уровень: {l} · Рекорд очков: {b} · Лопнуло шаров: {p} · Достижения: {g}/{m}"}, "secretReady": {"az": "Sirr oyanır. İndi sənin növbəndir.", "en": "The secret is awakening. Now it is your turn.", "ru": "Тайна пробуждается. Теперь твой черёд."}, "secretWait": {"az": "Gizli nailiyyət. Onu yalnız ən səbirli oyunçu tapacaq.", "en": "A secret achievement. Only the most patient player will find it.", "ru": "Секретное достижение. Найдёт его только самый терпеливый игрок."}, "achCount": {"az": "{n} / {m} nailiyyət açılıb", "en": "{n} / {m} achievements unlocked", "ru": "Открыто достижений: {n} / {m}"}, "selected": {"az": "Seçilib", "en": "Selected", "ru": "Выбрана"}, "select": {"az": "Seç", "en": "Select", "ru": "Выбрать"}, "unlockAt": {"az": "{n}-ci səviyyədə açılır", "en": "Unlocks at level {n}", "ru": "Откроется на уровне {n}"}, "th_day": {"az": "Gündüz", "en": "Day", "ru": "День"}, "th_night": {"az": "Gecə", "en": "Night", "ru": "Ночь"}, "th_sea": {"az": "Dəniz", "en": "Sea", "ru": "Море"}, "th_neon": {"az": "Neon", "en": "Neon", "ru": "Неон"}, "shareText": {"az": "Şar Partlat: {s} bal, {l}-ci səviyyə{avg}. Sən bunu keçə bilərsən?", "en": "Balloon Pop: {s} points, level {l}{avg}. Can you beat that?", "ru": "Лопни шар: {s} очк., уровень {l}{avg}. Сможешь побить?"}, "shareAvg": {"az": ", orta reaksiya {a} ms", "en": ", avg reaction {a} ms", "ru": ", ср. реакция {a} мс"}, "lvlN": {"az": "{n}-ci səviyyə", "en": "Level {n}", "ru": "Уровень {n}"}, "pts": {"az": "bal", "en": "pts", "ru": "очк."}, "avgReact": {"az": "Orta reaksiya", "en": "Avg. reaction", "ru": "Ср. реакция"}, "maxCombo": {"az": "Maks. kombo", "en": "Max combo", "ru": "Макс. комбо"}, "shareTaken": {"az": "Bonus bu gün artıq alınıb. Yenə paylaşa bilərsən.", "en": "Bonus already claimed today. You can still share.", "ru": "Бонус за сегодня уже получен. Поделиться всё равно можно."}, "shareFresh": {"az": "Paylaş və növbəti raundda +10 saniyə bonus qazan (gündə bir dəfə).", "en": "Share and earn +10 seconds next round (once a day).", "ru": "Поделись и получи +10 секунд в следующем раунде (раз в день)."}, "shareThanks": {"az": "Paylaşdığın üçün sağ ol! Bonus bu gün artıq alınıb.", "en": "Thanks for sharing! Bonus already claimed today.", "ru": "Спасибо, что поделился! Бонус за сегодня уже получен."}, "shareBonus": {"az": "Bonus qazandın: növbəti raundda +10 saniyə.", "en": "Bonus earned: +10 seconds next round.", "ru": "Бонус получен: +10 секунд в следующем раунде."}, "textSel": {"az": "Mətn seçildi. İndi kopyala və göndər.", "en": "Text selected. Copy it and send.", "ru": "Текст выделен. Скопируй и отправь."}, "textCopied": {"az": "Mətn kopyalandı. İndi istədiyin yerə göndər.", "en": "Text copied. Send it wherever you like.", "ru": "Текст скопирован. Отправь куда хочешь."}, "ageErr": {"az": "Doğum tarixini düzgün daxil et.", "en": "Enter a valid date of birth.", "ru": "Введи корректную дату рождения."}, "nameErr": {"az": "Ad 2–16 simvol olmalıdır.", "en": "Name must be 2–16 characters.", "ru": "Имя должно быть длиной 2–16 символов."}, "wiped": {"az": "Bütün məlumatlar silindi.", "en": "All data deleted.", "ru": "Все данные удалены."}, "a_hello_n": {"az": "Salam!", "en": "Hello!", "ru": "Привет!"}, "a_hello_d": {"az": "Profil yarat.", "en": "Create a profile.", "ru": "Создай профиль."}, "a_first_n": {"az": "İlk partlayış", "en": "First pop", "ru": "Первый хлопок"}, "a_first_d": {"az": "İlk şarı partlat.", "en": "Pop your first balloon.", "ru": "Лопни первый шар."}, "a_p100_n": {"az": "100 şar", "en": "100 balloons", "ru": "100 шаров"}, "a_p100_d": {"az": "Cəmi 100 şar partlat.", "en": "Pop 100 balloons in total.", "ru": "Лопни 100 шаров всего."}, "a_p500_n": {"az": "500 şar", "en": "500 balloons", "ru": "500 шаров"}, "a_p500_d": {"az": "Cəmi 500 şar partlat.", "en": "Pop 500 balloons in total.", "ru": "Лопни 500 шаров всего."}, "a_c10_n": {"az": "10 kombo", "en": "10 combo", "ru": "10 комбо"}, "a_c10_d": {"az": "Xətasız 10 şar partlat.", "en": "Pop 10 balloons without a miss.", "ru": "Лопни 10 шаров без промаха."}, "a_c25_n": {"az": "25 kombo", "en": "25 combo", "ru": "25 комбо"}, "a_c25_d": {"az": "Xətasız 25 şar partlat.", "en": "Pop 25 balloons without a miss.", "ru": "Лопни 25 шаров без промаха."}, "a_fast300_n": {"az": "İldırım", "en": "Lightning", "ru": "Молния"}, "a_fast300_d": {"az": "0,3 saniyədən tez reaksiya ver.", "en": "React in under 0.3 seconds.", "ru": "Среагируй быстрее 0,3 секунды."}, "a_l5_n": {"az": "5-ci səviyyə", "en": "Level 5", "ru": "5-й уровень"}, "a_l5_d": {"az": "5-ci səviyyəyə çat.", "en": "Reach level 5.", "ru": "Дойди до 5-го уровня."}, "a_l10_n": {"az": "Usta", "en": "Master", "ru": "Мастер"}, "a_l10_d": {"az": "10-cu səviyyəni keç.", "en": "Complete level 10.", "ru": "Пройди 10-й уровень."}, "a_star3_n": {"az": "Üç ulduz", "en": "Three stars", "ru": "Три звезды"}, "a_star3_d": {"az": "Bir raundu 3 ulduzla bitir.", "en": "Finish a round with 3 stars.", "ru": "Закончи раунд с 3 звёздами."}, "a_gold10_n": {"az": "Qızıl ovçusu", "en": "Gold hunter", "ru": "Золотой охотник"}, "a_gold10_d": {"az": "10 qızıl şar partlat.", "en": "Pop 10 gold balloons.", "ru": "Лопни 10 золотых шаров."}, "a_ice20_n": {"az": "Buz sındıran", "en": "Ice breaker", "ru": "Ледокол"}, "a_ice20_d": {"az": "20 buzlu şarı partlat.", "en": "Pop 20 ice balloons.", "ru": "Лопни 20 ледяных шаров."}, "a_share_n": {"az": "Paylaşan", "en": "Sharer", "ru": "Поделившийся"}, "a_share_d": {"az": "Nəticəni paylaş.", "en": "Share your result.", "ru": "Поделись результатом."}, "a_duel_n": {"az": "Duel qalibi", "en": "Duel winner", "ru": "Победитель дуэли"}, "a_duel_d": {"az": "İki nəfərlik duelı qazan.", "en": "Win a two-player duel.", "ru": "Выиграй дуэль вдвоём."}, "a_hero_n": {"az": "İşin qəhrəmanı", "en": "The Real Hero", "ru": "Настоящий герой"}, "a_hero_d": {"az": "Gizli nailiyyəti sən açdın. Bunu çox az adam bacarır.", "en": "You unlocked the secret achievement. Very few can do this.", "ru": "Ты открыл секретное достижение. Это удаётся очень немногим."}, "heroTitle": {"az": "İşin qəhrəmanı!", "en": "The Real Hero!", "ru": "Настоящий герой!"}};
   Object.assign(DICT, {"pr5": {"az": "Bildiriş göndərilmir. Bir günü buraxsan, qoruma zənciri saxlayır; sikkələr yalnız oyunda qazanılır.", "en": "No notifications are sent. A shield keeps your streak if you miss a day; coins are earned only by playing.", "ru": "Уведомления не отправляются. Щит сохраняет серию, если пропустить день; монеты зарабатываются только игрой."}, "dailyBtn": {"az": "Günün çağırışı", "en": "Daily challenge", "ru": "Задание дня"}, "endlessBtn": {"az": "Sonsuz rejim", "en": "Endless mode", "ru": "Бесконечный режим"}, "skinsBtn": {"az": "Kolleksiya", "en": "Collection", "ru": "Коллекция"}, "skinsTitle": {"az": "Şar kolleksiyası", "en": "Balloon collection", "ru": "Коллекция шаров"}, "hLives": {"az": "Can", "en": "Lives", "ru": "Жизни"}, "recordLbl": {"az": "Rekord", "en": "Record", "ru": "Рекорд"}, "dailyScore": {"az": "Bu gün: {s}", "en": "Today: {s}", "ru": "Сегодня: {s}"}, "dailyNext": {"az": "Zəncir → {n}", "en": "Streak → {n}", "ru": "Серия → {n}"}, "dailyNew": {"az": "Yeni", "en": "New", "ru": "Новое"}, "endlessNew": {"az": "3 can", "en": "3 lives", "ru": "3 жизни"}, "recordN": {"az": "Rekord {n}", "en": "Best {n}", "ru": "Рекорд {n}"}, "streakN": {"az": "Zəncir {n} gün", "en": "Streak {n} days", "ru": "Серия {n} дн."}, "shieldN": {"az": "Qoruma {n}", "en": "Shield {n}", "ru": "Щит {n}"}, "coinsN": {"az": "Sikkə {n}", "en": "Coins {n}", "ru": "Монеты {n}"}, "costN": {"az": "{n} sikkə", "en": "{n} coins", "ru": "{n} монет"}, "coinsGain": {"az": "+{c} sikkə", "en": "+{c} coins", "ru": "+{c} монет"}, "newRecord": {"az": "Yeni rekord!", "en": "New record!", "ru": "Новый рекорд!"}, "endRound": {"az": "Raund bitdi!", "en": "Round over!", "ru": "Раунд окончен!"}, "dailyDone": {"az": "Günün çağırışı tamamlandı!", "en": "Daily challenge complete!", "ru": "Задание дня выполнено!"}, "shieldEarned": {"az": "Qoruma qazandın: bir buraxılmış gün zənciri pozmur.", "en": "Shield earned: one missed day will not break your streak.", "ru": "Получен щит: один пропущенный день не прервёт серию."}, "shieldUsed": {"az": "Qoruma işlədi: zəncir davam edir.", "en": "Shield used: your streak continues.", "ru": "Щит сработал: серия продолжается."}, "streakNew": {"az": "Yeni zəncir başladı. Ən uzun zəncirin: {b} gün.", "en": "A new streak begins. Your longest: {b} days.", "ru": "Новая серия началась. Самая длинная: {b} дн."}, "modeDaily": {"az": "Günün çağırışı", "en": "Daily challenge", "ru": "Задание дня"}, "modeEndless": {"az": "Sonsuz rejim", "en": "Endless mode", "ru": "Бесконечный режим"}, "shareDaily": {"az": "Şar Partlat, günün çağırışı: {s} bal, {n} günlük zəncir. Sən bunu keçə bilərsən?", "en": "Balloon Pop daily challenge: {s} points, {n}-day streak. Can you beat that?", "ru": "Лопни шар, задание дня: {s} очк., серия {n} дн. Сможешь побить?"}, "shareEndless": {"az": "Şar Partlat, sonsuz rejim: {s} bal. Sən bunu keçə bilərsən?", "en": "Balloon Pop endless mode: {s} points. Can you beat that?", "ru": "Лопни шар, бесконечный режим: {s} очк. Сможешь побить?"}, "sk_plain": {"az": "Sadə", "en": "Plain", "ru": "Простой"}, "sk_dots": {"az": "Nöqtəli", "en": "Dots", "ru": "В горошек"}, "sk_stripes": {"az": "Zolaqlı", "en": "Stripes", "ru": "Полосатый"}, "sk_star": {"az": "Ulduzlu", "en": "Star", "ru": "Звёздный"}, "sk_heart": {"az": "Ürəkli", "en": "Heart", "ru": "Сердечко"}, "sk_rainbow": {"az": "Göy qurşağı", "en": "Rainbow", "ru": "Радуга"}, "a_streak7_n": {"az": "Zəncir ustası", "en": "Streak master", "ru": "Мастер серии"}, "a_streak7_d": {"az": "7 gün ardıcıl günün çağırışını tamamla.", "en": "Complete the daily challenge 7 days in a row.", "ru": "Выполни задание дня 7 дней подряд."}, "a_endless50_n": {"az": "Dayanıqlı", "en": "Enduring", "ru": "Стойкий"}, "a_endless50_d": {"az": "Sonsuz rejimdə 50 bal topla.", "en": "Score 50 in endless mode.", "ru": "Набери 50 очков в бесконечном режиме."}});
+  Object.assign(DICT, {"pr6": {"az": "Onlayn duel: adın, rəngin və təsadüfi ID yalnız lobidə olarkən serverdə görünür, çıxanda silinir. 13 yaşdan kiçiklər üçün onlayn söndürülüb.", "en": "Online duel: your name, color and a random ID are visible on the server only while you are in the lobby and are removed when you leave. Online play is turned off for players under 13.", "ru": "Онлайн-дуэль: имя, цвет и случайный ID видны на сервере только пока ты в лобби и удаляются при выходе. Для игроков младше 13 лет онлайн отключён."}, "lobbyTitle": {"az": "Onlayn oyunçular", "en": "Online players", "ru": "Игроки онлайн"}, "lobbyHint": {"az": "Adın və rəngin yalnız bu ekranda olarkən başqalarına görünür. Rəqib seç və dəvət göndər.", "en": "Your name and color are visible to others only while you are on this screen. Pick an opponent and send an invite.", "ru": "Твоё имя и цвет видны другим, только пока ты на этом экране. Выбери соперника и отправь приглашение."}, "lobbyEmpty": {"az": "Hələ heç kim onlayn deyil. Dostuna oyunun linkini göndər!", "en": "No one is online yet. Send the game link to a friend!", "ru": "Пока никого нет онлайн. Отправь ссылку на игру другу!"}, "invite": {"az": "Dəvət et", "en": "Invite", "ru": "Пригласить"}, "accept": {"az": "Qəbul et", "en": "Accept", "ru": "Принять"}, "decline": {"az": "Rədd et", "en": "Decline", "ru": "Отклонить"}, "invFrom": {"az": "{n} səni duelə dəvət edir", "en": "{n} invites you to a duel", "ru": "{n} приглашает тебя на дуэль"}, "waitingFor": {"az": "{n} cavab verir…", "en": "Waiting for {n}…", "ru": "Ожидание ответа: {n}…"}, "declined": {"az": "{n} dəvəti rədd etdi.", "en": "{n} declined.", "ru": "{n} отклонил(а) приглашение."}, "noAnswer": {"az": "Cavab gəlmədi.", "en": "No answer.", "ru": "Нет ответа."}, "cancelInv": {"az": "Dəvəti ləğv et", "en": "Cancel invite", "ru": "Отменить приглашение"}, "localBtn": {"az": "Eyni cihazda oyna", "en": "Play on this device", "ru": "Играть на этом устройстве"}, "netErr": {"az": "Bağlantı yoxdur. Yenidən yoxla.", "en": "No connection. Try again.", "ru": "Нет соединения. Попробуй снова."}, "toLobby": {"az": "Lobiyə qayıt", "en": "Back to lobby", "ru": "В лобби"}, "waitOpp": {"az": "Rəqib gözlənilir…", "en": "Waiting for the opponent…", "ru": "Ждём соперника…"}});
   var LANGS = ['az', 'en', 'ru'];
   function pickLang() {
     var l = '';
@@ -528,6 +553,7 @@ html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area
     return (gap <= 1 || (gap === 2 && st.freezes > 0)) ? st.n : 0;
   }
 
+  var N = { uid: '', off: 0, synced: false, hb: null, poll: null, inv: null, waiting: null, match: null, mt: null, busy: false };
   var S = {
     kind: 'level', lives: 3, record: 0, newRec: false,
     mode: 'idle', players: 1, pl: 1, level: 1, t: 0, left: ROUND_SECONDS, cd: 0, anim: 0, last: 0, goal: 14,
@@ -707,7 +733,7 @@ html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area
   function spawn(f, p) {
     var a = f.rng(), b = f.rng(), c = f.rng(), d = f.rng(), e = f.rng();
     var rs = p.size * (0.9 + c * 0.25), fx = a, fy = b;
-    if (S.players === 1) {
+    if (S.players === 1 && S.kind !== 'online') {
       var tries = 0;
       while (overlaps(f, fx, fy, rs) && tries < 12) { fx = f.rng2(); fy = f.rng2(); tries++; }
       if (tries >= 12) { return false; }
@@ -781,10 +807,15 @@ html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area
     $('lTime').textContent = T(endless ? 'hLives' : 'hTime');
     $('hTime').textContent = endless ? '♥♥♥'.slice(0, Math.max(0, S.lives)) + '♡♡♡'.slice(0, 3 - Math.max(0, S.lives)) : Math.max(0, Math.ceil(S.left));
     if (S.players === 2 || !f) { return; }
-    $('hLvl').textContent = S.level;
+    $('hLvl').textContent = S.kind === 'online' ? S.pl : S.level;
     $('hScore').textContent = f.score;
     $('hCombo').textContent = f.combo + (f.combo >= 5 ? ' x' + multOf(f.combo) : '');
-    if (S.kind === 'level') {
+    if (S.kind === 'online' && N.match) {
+      var os = N.match.oppScore, tot = f.score + os;
+      $('lBal').textContent = N.match.opp.n;
+      $('hPop').textContent = f.score + ' : ' + os;
+      $('hBar').style.width = (tot ? (f.score / tot) * 100 : 50) + '%';
+    } else if (S.kind === 'level') {
       $('lBal').textContent = T('hBal');
       $('hPop').textContent = f.pops + ' / ' + S.goal;
       $('hBar').style.width = Math.min(100, (f.pops / S.goal) * 100) + '%';
@@ -798,8 +829,8 @@ html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area
   }
 
   /* ---------- overlays ---------- */
-  var OVERLAYS = ['start', 'end', 'end2', 'duel', 'profile', 'ach', 'theme', 'share', 'rest', 'pause', 'skins'];
-  var OVID = { start: 'ovStart', end: 'ovEnd', end2: 'ovEnd2', duel: 'ovDuel', profile: 'ovProfile', ach: 'ovAch', theme: 'ovTheme', share: 'ovShare', rest: 'ovRest', pause: 'ovPause', skins: 'ovSkins' };
+  var OVERLAYS = ['start', 'end', 'end2', 'duel', 'profile', 'ach', 'theme', 'share', 'rest', 'pause', 'skins', 'lobby'];
+  var OVID = { start: 'ovStart', end: 'ovEnd', end2: 'ovEnd2', duel: 'ovDuel', profile: 'ovProfile', ach: 'ovAch', theme: 'ovTheme', share: 'ovShare', rest: 'ovRest', pause: 'ovPause', skins: 'ovSkins', lobby: 'ovLobby' };
   function showOverlay(name) {
     OVERLAYS.forEach(function (k) { $(OVID[k]).hidden = (k !== name); });
     $('bPause').hidden = (name !== null);
@@ -998,6 +1029,7 @@ html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area
     if (S.kind === 'endless') { S.pl = Math.min(MAX_LEVEL, 1 + Math.floor(S.t / 20)); }
     var pr = params(S.pl), maxOn = S.players === 2 ? 3 : pr.maxOn;
     S.t += dt; S.left -= dt;
+    if (S.kind === 'online') { S.left = (S.endAt - Date.now()) / 1000; }
     for (j = 0; j < S.fields.length; j++) {
       var g = S.fields[j], active = 0, b;
       g.spawnIn -= dt;
@@ -1017,7 +1049,8 @@ html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area
     }
     updateHud();
     if (S.players === 1) {
-      if (S.kind === 'endless') { if (S.lives <= 0) { endRecord(); } }
+      if (S.kind === 'online') { if (S.left <= 0) { endOnline(); } }
+      else if (S.kind === 'endless') { if (S.lives <= 0) { endRecord(); } }
       else if (S.kind === 'daily') { if (S.left <= 0) { endRecord(); } }
       else if (S.fields[0].pops >= S.goal || S.left <= 0) { endSingle(); }
     }
@@ -1329,6 +1362,7 @@ html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area
   function profileDone() {
     updateChip(); persist();
     var go = S.after || S.back || 'start'; S.after = null;
+    if (go === 'duel') { duelEntry(); return; }
     showOverlay(go); if (go === 'share') { openShare(); }
   }
 
@@ -1459,6 +1493,154 @@ html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area
     copyFallback();
   }
 
+
+  /* ---------- online duel (Firebase Realtime Database over REST) ---------- */
+  var NET_URL = '';
+  function netOn() { return !!NET_URL; }
+  function noop() {}
+  function nreq(method, path, body) {
+    return fetch(NET_URL.replace(/\/$/, '') + '/' + path + '.json', { method: method, body: body === undefined ? undefined : JSON.stringify(body), cache: 'no-store' })
+      .then(function (r) { if (!r.ok) { throw new Error('net ' + r.status); } return r.json(); });
+  }
+  function randId() {
+    var a = new Uint8Array(10), s = '', i;
+    try { crypto.getRandomValues(a); } catch (e) { for (i = 0; i < 10; i++) { a[i] = Math.floor(Math.random() * 256); } }
+    for (i = 0; i < 10; i++) { s += (a[i] % 36).toString(36); }
+    return s;
+  }
+  function okId(v) { return typeof v === 'string' && /^[a-z0-9-]{4,48}$/.test(v); }
+  function okColor(c) { return (typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c)) ? c : '#888888'; }
+  function cleanName(n) { return String(n == null ? '' : n).replace(/[\u0000-\u001f<>]/g, '').slice(0, 16) || '?'; }
+  function nowS() { return Date.now() + N.off; }
+  function myInfo() { var p = saved.profile; return { n: p ? p.name : T('player'), c: p ? p.color : '#4d8df7' }; }
+  function lbMsg(t) { $('lbMsg').textContent = t || ''; }
+
+  function heartbeat() {
+    if ($('ovLobby').hidden) { stopLobby(); return; }
+    var me = myInfo(), path = 'lobby/' + N.uid;
+    nreq('PUT', path, { n: me.n, c: me.c, t: { '.sv': 'timestamp' } })
+      .then(function (v) { return (v && typeof v.t === 'number') ? v : nreq('GET', path); })
+      .then(function (v) { if (v && typeof v.t === 'number') { N.off = v.t - Date.now(); N.synced = true; } })
+      .catch(function () { lbMsg(T('netErr')); });
+  }
+  function openLobby() {
+    stopLobby();
+    N.uid = N.uid || randId(); N.inv = null; N.waiting = null; N.synced = false; N.busy = false;
+    $('lbInvite').hidden = true; $('lbCancel').hidden = true; lbMsg(''); $('lbList').innerHTML = '';
+    showOverlay('lobby');
+    heartbeat();
+    N.hb = setInterval(heartbeat, 5000); N.poll = setInterval(lobbyPoll, 1500);
+  }
+  function stopLobby() {
+    var was = N.hb !== null;
+    clearInterval(N.hb); clearInterval(N.poll); N.hb = N.poll = null;
+    if (N.waiting) { nreq('DELETE', 'inv/' + N.waiting.to).catch(noop); N.waiting = null; }
+    if (was && N.uid) { nreq('DELETE', 'lobby/' + N.uid).catch(noop); nreq('DELETE', 'inv/' + N.uid).catch(noop); }
+  }
+  function lobbyPoll() {
+    if ($('ovLobby').hidden) { stopLobby(); return; }
+    if (N.busy || !N.synced) { return; }
+    N.busy = true;
+    Promise.all([
+      nreq('GET', 'lobby'), nreq('GET', 'inv/' + N.uid),
+      N.waiting ? nreq('GET', 'res/' + N.waiting.id) : Promise.resolve(null)
+    ]).then(function (r) {
+      N.busy = false;
+      if ($('ovLobby').hidden) { return; }
+      renderLobby(r[0] || {}); handleInvite(r[1]); handleReply(r[2]);
+    }).catch(function () { N.busy = false; lbMsg(T('netErr')); });
+  }
+  function renderLobby(map) {
+    var list = $('lbList'), n = 0, now = nowS();
+    list.innerHTML = '';
+    Object.keys(map).forEach(function (key) {
+      var e = map[key];
+      if (!okId(key) || !e || typeof e.t !== 'number') { return; }
+      var age = now - e.t;
+      if (age > 60000) { nreq('DELETE', 'lobby/' + key).catch(noop); return; }
+      if (key === N.uid || age > 15000) { return; }
+      n++;
+      var li = document.createElement('li'), dot = document.createElement('i'), nm = document.createElement('span'), bt = document.createElement('button');
+      dot.className = 'dot'; dot.style.background = okColor(e.c);
+      nm.className = 'nm'; nm.textContent = cleanName(e.n);
+      bt.type = 'button'; bt.className = 'ghost'; bt.textContent = T('invite'); bt.disabled = !!N.waiting;
+      bt.addEventListener('click', function () { sendInvite(key, e); });
+      li.appendChild(dot); li.appendChild(nm); li.appendChild(bt); list.appendChild(li);
+    });
+    if (!n) { var em = document.createElement('li'); em.className = 'empty'; em.textContent = T('lobbyEmpty'); list.appendChild(em); }
+  }
+  function handleInvite(inv) {
+    if (inv && okId(inv.id) && okId(inv.from) && typeof inv.t === 'number' && nowS() - inv.t < 25000 && !N.waiting) {
+      N.inv = inv; $('lbInvText').textContent = T('invFrom', { n: cleanName(inv.n) }); $('lbInvite').hidden = false;
+    } else { N.inv = null; $('lbInvite').hidden = true; }
+  }
+  function sendInvite(key, e) {
+    if (N.waiting) { return; }
+    var me = myInfo(), id = N.uid + '-' + Date.now().toString(36), seed = Math.floor(Math.random() * 1e9) + 1;
+    N.waiting = { id: id, to: key, name: cleanName(e.n), color: okColor(e.c), seed: seed, t: Date.now() };
+    nreq('PUT', 'inv/' + key, { id: id, from: N.uid, n: me.n, c: me.c, seed: seed, t: { '.sv': 'timestamp' } })
+      .catch(function () { N.waiting = null; $('lbCancel').hidden = true; lbMsg(T('netErr')); });
+    $('lbCancel').hidden = false; lbMsg(T('waitingFor', { n: N.waiting.name }));
+  }
+  function cancelInvite() {
+    if (N.waiting) { nreq('DELETE', 'inv/' + N.waiting.to).catch(noop); N.waiting = null; }
+    $('lbCancel').hidden = true;
+  }
+  function handleReply(res) {
+    var w = N.waiting; if (!w) { return; }
+    if (res && res.ok === true && typeof res.at === 'number') { N.waiting = null; startOnline(w.seed, { uid: w.to, n: w.name, c: w.color }, w.id, res.at); return; }
+    if (res && res.ok === false) { N.waiting = null; $('lbCancel').hidden = true; lbMsg(T('declined', { n: w.name })); return; }
+    if (Date.now() - w.t > 20000) { cancelInvite(); lbMsg(T('noAnswer')); }
+  }
+
+  function startOnline(seed, opp, mid, at) {
+    seed = (Math.floor(Math.abs(+seed) || 1) % 1000000000) + 1;
+    stopLobby();
+    var me = myInfo();
+    S.kind = 'online'; S.players = 1; S.pl = DUEL_LEVEL;
+    S.fields = [makeField(seed, me.n, me.c)]; layout();
+    S.goal = 0; S.t = 0; S.left = DUEL_SECONDS;
+    var wait = Math.max(0.6, Math.min(5, (at + 4000 - nowS()) / 1000));
+    S.cd = wait; S.mode = 'count'; S.endAt = Date.now() + wait * 1000 + DUEL_SECONDS * 1000;
+    N.match = { id: mid, opp: opp, oppScore: 0, oppDone: false, oppSeen: Date.now(), done: false, waitFrom: 0 };
+    showOverlay(null); $('bPause').hidden = true; updateHud();
+    clearInterval(N.mt); N.mt = setInterval(matchSync, 500);
+  }
+  function matchSync() {
+    var m = N.match; if (!m) { clearInterval(N.mt); return; }
+    var f = S.fields[0], base = 'm/' + m.id + '/';
+    nreq('PUT', base + N.uid, { s: Math.max(0, Math.min(9999, f.score | 0)), d: m.done ? 1 : 0 }).catch(noop);
+    if (okId(m.opp.uid)) {
+      nreq('GET', base + m.opp.uid).then(function (v) {
+        if (v && typeof v.s === 'number') { m.oppScore = Math.max(0, Math.min(9999, v.s | 0)); m.oppSeen = Date.now(); if (v.d) { m.oppDone = true; } }
+      }).catch(noop);
+    }
+    if (S.mode === 'wait' && (m.oppDone || Date.now() - m.waitFrom > 8000)) { finishOnline(); }
+  }
+  function endOnline() {
+    var m = N.match; S.mode = 'wait'; S.fields[0].balloons = [];
+    if (m) { m.done = true; m.waitFrom = Date.now(); }
+    toast(T('waitOpp')); matchSync();
+  }
+  function finishOnline() {
+    var m = N.match, f = S.fields[0]; if (!m) { return; }
+    clearInterval(N.mt); N.mt = null;
+    var me = f.score, op = m.oppScore, id = m.id;
+    S.mode = 'end'; S.lastEnd = 'end2'; S.rounds++; saved.stats.duels++;
+    if (me > op) { unlock('duel'); }
+    persist(); chime();
+    $('dTitle').textContent = me === op ? T('tie') : T('wins', { name: me > op ? f.name : m.opp.n });
+    $('dN1').textContent = f.name; $('dS1').textContent = me;
+    $('dN2').textContent = m.opp.n; $('dS2').textContent = op;
+    $('dBox1').className = 'side' + (me > op ? ' win' : '');
+    $('dBox2').className = 'side' + (op > me ? ' win' : '');
+    $('dBreak').hidden = true;
+    $('bRematch').textContent = T('toLobby'); $('bRematch').dataset.act = 'lobby';
+    showOverlay('end2'); updateHud();
+    setTimeout(function () { nreq('DELETE', 'm/' + id + '/' + N.uid).catch(noop); }, 15000);
+    N.match = null;
+  }
+
   /* ---------- wiring ---------- */
   function on(id, fn) { $(id).addEventListener('click', fn); }
   on('bStart', function () { ensureAudio(); startSingle(); });
@@ -1466,12 +1648,34 @@ html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area
   on('bEndless', function () { ensureAudio(); startRun('endless'); });
   on('bSkins', function () { S.back = 'start'; renderSkins(); showOverlay('skins'); });
   on('skBack', function () { showOverlay('start'); });
-  on('bDuel', function () {
-    if (!saved.profile) { openProfile('start', 'duel'); return; }
+  function showLocalDuel() {
     var child = saved.profile.child;
     $('d1').value = child ? T('p1') : saved.profile.name;
     $('d2').value = T('p2'); $('d2').readOnly = !!child;
     showOverlay('duel');
+  }
+  function duelEntry() {
+    if (!saved.profile) { openProfile('start', 'duel'); return; }
+    if (netOn() && !saved.profile.child) { openLobby(); } else { showLocalDuel(); }
+  }
+  on('bDuel', duelEntry);
+  on('lbLocal', function () { stopLobby(); showLocalDuel(); });
+  on('lbBack', function () { stopLobby(); showOverlay('start'); });
+  on('lbCancel', function () { cancelInvite(); lbMsg(''); });
+  on('lbDecline', function () {
+    var inv = N.inv; N.inv = null; $('lbInvite').hidden = true;
+    if (inv) { nreq('PUT', 'res/' + inv.id, { ok: false }).catch(noop); nreq('DELETE', 'inv/' + N.uid).catch(noop); }
+  });
+  on('lbAccept', function () {
+    var inv = N.inv; if (!inv) { return; }
+    N.inv = null; $('lbInvite').hidden = true;
+    var path = 'res/' + inv.id;
+    nreq('PUT', path, { ok: true, at: { '.sv': 'timestamp' } })
+      .then(function (v) { return (v && typeof v.at === 'number') ? v : nreq('GET', path); })
+      .then(function (v) {
+        nreq('DELETE', 'inv/' + N.uid).catch(noop);
+        startOnline(inv.seed, { uid: inv.from, n: cleanName(inv.n), c: okColor(inv.c) }, inv.id, v.at);
+      }).catch(function () { lbMsg(T('netErr')); });
   });
   on('bDuelGo', function () {
     ensureAudio();
@@ -1531,12 +1735,13 @@ html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area
   on('shCopy', copyFallback);
   on('bRematch', function () {
     ensureAudio();
-    if ($('bRematch').dataset.act === 'rest') { showOverlay('rest'); } else { startDuel(); }
+    var act = $('bRematch').dataset.act;
+    if (act === 'lobby') { openLobby(); } else if (act === 'rest') { showOverlay('rest'); } else { startDuel(); }
   });
   on('bMenu2', function () { S.mode = 'idle'; showOverlay('start'); });
   on('bReady', function () { S.rounds = 0; S.mode = 'idle'; showOverlay('start'); });
   function pauseGame() {
-    if (S.mode !== 'play' && S.mode !== 'count') { return; }
+    if (S.kind === 'online' || (S.mode !== 'play' && S.mode !== 'count')) { return; }
     S.prev = S.mode; S.mode = 'pause'; showOverlay('pause');
   }
   on('bPause', pauseGame);
